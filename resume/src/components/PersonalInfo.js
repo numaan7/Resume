@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { TextField, Button, Avatar, Box, Grid, Paper, Typography } from '@mui/material';
+import { useState, useEffect, useCallback } from 'react';
+import { TextField, Button, Avatar, Box, Grid, Paper, Typography, Tooltip, IconButton } from '@mui/material';
+import { Edit as EditIcon, Save as SaveIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -15,47 +16,60 @@ export default function PersonalInfo() {
     githubUrl: '',
     websiteUrl: ''
   });
-  const [loading, setLoading] = useState(true);
+  const [editingName, setEditingName] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      loadPersonalInfo();
-    }
-  }, [user]);
-
-  const loadPersonalInfo = async () => {
+  const loadPersonalInfo = useCallback(async () => {
+    if (!user?.uid) return;
     try {
       const docRef = doc(db, 'users', user.uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setFormData(prev => ({
-          ...docSnap.data(),
-          fullName: user.displayName // Always use Google profile name
-        }));
-      } else {
-        // Set default values from Google profile
+      const docSnapshot = await getDoc(docRef);
+      if (docSnapshot.exists()) {
+        const data = docSnapshot.data();
         setFormData(prev => ({
           ...prev,
-          fullName: user.displayName || ''
+          fullName: data.fullName || '',
+          dateOfBirth: data.dateOfBirth || '',
+          phone: data.phone || '',
+          address: data.address || '',
+          professionalSummary: data.professionalSummary || '',
+          githubUrl: data.githubUrl || '',
+          websiteUrl: data.websiteUrl || ''
         }));
       }
     } catch (error) {
       console.error('Error loading personal info:', error);
     }
-    setLoading(false);
-  };
+  }, [user]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (user?.uid) {
+      loadPersonalInfo();
+    }
+  }, [user, loadPersonalInfo]);
+
+  const savePersonalInfo = async (data) => {
+    if (!user?.uid) return;
     try {
       const docRef = doc(db, 'users', user.uid);
-      await setDoc(docRef, {
-        ...formData,
-        fullName: user.displayName // Ensure we always use Google profile name
-      }, { merge: true });
+      await setDoc(docRef, data, { merge: true });
+      console.log('Saved data:', data); // Add logging to verify data
     } catch (error) {
       console.error('Error saving personal info:', error);
     }
+  };
+
+  const handleSubmit = async (e) => {
+    e?.preventDefault();
+    await savePersonalInfo(formData);
+  };
+
+  const handleNameSave = async () => {
+    const dataToSave = {
+      ...formData,
+      fullName: formData.fullName || user?.displayName || '' // Ensure we have a name to save
+    };
+    await savePersonalInfo(dataToSave);
+    setEditingName(false);
   };
 
   const handleInputChange = (e) => {
@@ -64,10 +78,23 @@ export default function PersonalInfo() {
       ...prev,
       [name]: value
     }));
+    
+    // If editing name, immediately update the fullName
+    if (name === 'fullName' && editingName) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: value || user?.displayName || ''
+      }));
+    }
   };
 
-  if (loading) {
-    return <Typography>Loading...</Typography>;
+  // If not logged in, show message
+  if (!user) {
+    return (
+      <Paper sx={{ p: 3, my: 2 }}>
+        <Typography>Please sign in to manage your personal information.</Typography>
+      </Paper>
+    );
   }
 
   return (
@@ -77,17 +104,27 @@ export default function PersonalInfo() {
         <Grid container spacing={3}>
           <Grid item xs={12} display="flex" justifyContent="center">
             <Avatar
-              src={user.photoURL}
+              src={user?.photoURL || ''}
               sx={{ width: 100, height: 100, mb: 2 }}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={6}>
             <TextField
               fullWidth
               label="Full Name"
-              value={user.displayName}
+              value={user?.displayName || ''}
               disabled
-              helperText="Name is synchronized with your Google account"
+              helperText="Full Name is synchronized with your Google account"
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Email"
+              value={user?.email || ''}
+              disabled
+              helperText="Email is synchronized with your Google account"
             />
           </Grid>
           <Grid item xs={12} md={6}>

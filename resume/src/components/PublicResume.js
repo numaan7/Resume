@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Paper, Typography, Box, Chip, CircularProgress } from '@mui/material';
+import { Box, CircularProgress, Typography, Paper } from '@mui/material';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { templates, getTemplateById } from './templates';
 
 function PublicResume({ publicId }) {
   const [resumeData, setResumeData] = useState(null);
@@ -15,7 +16,12 @@ function PublicResume({ publicId }) {
         const resumeSnap = await getDoc(resumeRef);
         
         if (resumeSnap.exists()) {
-          setResumeData(resumeSnap.data());
+          const data = resumeSnap.data();
+          // Ensure we have a valid template ID
+          if (!templates.some(t => t.id === data.templateId)) {
+            data.templateId = 'default';
+          }
+          setResumeData(data);
         } else {
           setError('Resume not found');
         }
@@ -46,145 +52,38 @@ function PublicResume({ publicId }) {
     );
   }
 
+  // Get the template component using the same system as Preview
+  const templateData = getTemplateById(resumeData.templateId);
+  const Template = templateData.component;
+
   return (
-    <Box sx={{ p: 3 }}>
-      <Paper sx={{ p: 4, fontFamily: 'Calibri, sans-serif' }}>
-        {/* Personal Info */}
-        <Box sx={{ mb: 3, textAlign: 'center' }}>
-          <Typography variant="h4" gutterBottom>
-            {resumeData.personalInfo.name}
-          </Typography>
-          <Typography>{resumeData.personalInfo.email}</Typography>
-          <Typography>{resumeData.personalInfo.phone}</Typography>
-          <Typography>{resumeData.personalInfo.location}</Typography>
-          {resumeData.personalInfo.githubUrl && (
-            <Typography><a href={resumeData.personalInfo.githubUrl} target="_blank" rel="noopener noreferrer">GitHub Profile</a></Typography>
-          )}
-          {resumeData.personalInfo.websiteUrl && (
-            <Typography><a href={resumeData.personalInfo.websiteUrl} target="_blank" rel="noopener noreferrer">Website</a></Typography>
-          )}
-        </Box>
-
-        {resumeData.personalInfo.professionalSummary && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h5" gutterBottom sx={{ borderBottom: '2px solid #1976d2' }}>
-              Professional Summary
-            </Typography>
-            <Typography>{resumeData.personalInfo.professionalSummary}</Typography>
-          </Box>
-        )}
-
-        {/* Experience */}
-        {resumeData.experience && resumeData.experience.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h5" gutterBottom sx={{ borderBottom: '2px solid #1976d2' }}>
-              Experience
-            </Typography>
-            {resumeData.experience.map((exp, index) => (
-              <Box key={index} sx={{ mb: 2 }}>
-                <Typography variant="h6">{exp.company}</Typography>
-                <Typography variant="subtitle1">{exp.position}</Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {exp.startDate} - {exp.endDate || 'Present'}
-                </Typography>
-                <Typography>{exp.description}</Typography>
-              </Box>
-            ))}
-          </Box>
-        )}
-
-        {/* Education */}
-        {resumeData.education && resumeData.education.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h5" gutterBottom sx={{ borderBottom: '2px solid #1976d2' }}>
-              Education
-            </Typography>
-            {resumeData.education.map((edu, index) => (
-              <Box key={index} sx={{ mb: 2 }}>
-                <Typography variant="h6">{edu.instituteName}</Typography>
-                <Typography variant="subtitle1">{edu.degree} in {edu.fieldOfStudy}</Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {edu.fromDate} - {edu.toDate || 'Present'}
-                </Typography>
-                {edu.description && <Typography>{edu.description}</Typography>}
-              </Box>
-            ))}
-          </Box>
-        )}
-
-        {/* Skills */}
-        {resumeData.skills && resumeData.skills.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h5" gutterBottom sx={{ borderBottom: '2px solid #1976d2' }}>
-              Skills
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {resumeData.skills.map((skill, index) => (
-                <Chip 
-                  key={index} 
-                  label={`${skill.name} (${skill.yearsOfExperience} years)`} 
-                  sx={{ m: 0.5 }} 
-                />
-              ))}
-            </Box>
-          </Box>
-        )}
-
-        {/* Certifications */}
-        {resumeData.certifications && resumeData.certifications.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h5" gutterBottom sx={{ borderBottom: '2px solid #1976d2' }}>
-              Certifications
-            </Typography>
-            {resumeData.certifications.map((cert, index) => (
-              <Box key={index} sx={{ mb: 2 }}>
-                <Typography variant="h6">{cert.name}</Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {cert.organization} • Issued: {cert.issueDate}
-                  {cert.expiryDate && ` • Expires: ${cert.expiryDate}`}
-                </Typography>
-                {cert.credentialId && (
-                  <Typography variant="body2">Credential ID: {cert.credentialId}</Typography>
-                )}
-              </Box>
-            ))}
-          </Box>
-        )}
-
-        {/* Languages */}
-        {resumeData.languages && resumeData.languages.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h5" gutterBottom sx={{ borderBottom: '2px solid #1976d2' }}>
-              Languages
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {resumeData.languages.map((lang, index) => (
-                <Chip 
-                  key={index} 
-                  label={`${lang.name} - ${lang.proficiency}`}
-                  sx={{ m: 0.5 }} 
-                />
-              ))}
-            </Box>
-          </Box>
-        )}
-
-        {/* Achievements */}
-        {resumeData.achievements && resumeData.achievements.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h5" gutterBottom sx={{ borderBottom: '2px solid #1976d2' }}>
-              Achievements
-            </Typography>
-            {resumeData.achievements.map((achievement, index) => (
-              <Box key={index} sx={{ mb: 1 }}>
-                <Typography variant="subtitle1">{achievement.title}</Typography>
-                <Typography variant="body2" color="textSecondary">{achievement.date}</Typography>
-                <Typography>{achievement.description}</Typography>
-              </Box>
-            ))}
-          </Box>
-        )}
+    <Box sx={{ p: 3, maxWidth: '1200px', margin: '0 auto' }}>
+      {/* Show template info */}
+      <Paper sx={{ p: 2, mb: 3, bgcolor: 'background.paper' }}>
+        <Typography variant="h6" sx={{ mb: 1 }}>
+          Resume Template: {templateData.name}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {templateData.description}
+        </Typography>
       </Paper>
+
+      {/* Render the template */}
+      <Template
+        resumeData={{
+          ...resumeData,
+          phone: resumeData.personalInfo?.phone,
+          address: resumeData.personalInfo?.location,
+          professionalSummary: resumeData.personalInfo?.professionalSummary,
+          githubUrl: resumeData.personalInfo?.githubUrl,
+          websiteUrl: resumeData.personalInfo?.websiteUrl,
+        }}
+        user={{
+          displayName: resumeData.personalInfo.name,
+          email: resumeData.personalInfo.email,
+          photoURL: resumeData.personalInfo.photoURL
+        }}
+      />
     </Box>
   );
 }

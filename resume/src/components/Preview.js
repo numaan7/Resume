@@ -1,45 +1,43 @@
 import { useState, useEffect, useRef } from 'react';
-import { Paper, Typography, Box, Divider, Chip, Button, Snackbar } from '@mui/material';
-import { PictureAsPdf as PdfIcon, Share as ShareIcon } from '@mui/icons-material';
+import { 
+  Typography, 
+  Box, 
+  Button, 
+  Snackbar, 
+  FormControl, 
+  InputLabel, 
+  MenuItem, 
+  Select,
+  Tooltip,
+  Paper,
+  Chip,
+  Menu,
+  MenuItem as MenuItemMui
+} from '@mui/material';
+import { 
+  PictureAsPdf as PdfIcon, 
+  Share as ShareIcon, 
+  Download as DownloadIcon,
+  Article as ArticleIcon,
+  Description as WordIcon
+} from '@mui/icons-material';
+import htmlDocx from 'html-docx-js/dist/html-docx';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import html2pdf from 'html2pdf.js';
-
-const sectionStyle = {
-  marginBottom: 3,
-};
-
-const headingStyle = {
-  fontFamily: 'Calibri, sans-serif',
-  fontWeight: 'bold',
-  color: '#2c3e50',
-  marginBottom: 1,
-};
-
-const subHeadingStyle = {
-  fontFamily: 'Calibri, sans-serif',
-  fontWeight: 'bold',
-  color: '#34495e',
-};
-
-const textStyle = {
-  fontFamily: 'Calibri, sans-serif',
-};
-
-const dateStyle = {
-  fontFamily: 'Calibri, sans-serif',
-  color: '#7f8c8d',
-  fontStyle: 'italic',
-};
+import { jsPDF } from 'jspdf';
+import { templates, getTemplateById } from './templates';
 
 export default function Preview() {
   const { user } = useAuth();
   const [resumeData, setResumeData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const resumeRef = useRef(null);
+  const [selectedTemplate, setSelectedTemplate] = useState('default');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [anchorEl, setAnchorEl] = useState(null);
+  const resumeRef = useRef(null);
 
   useEffect(() => {
     const loadResumeData = async () => {
@@ -59,16 +57,21 @@ export default function Preview() {
     loadResumeData();
   }, [user]);
 
+  const handleTemplateChange = (event) => {
+    setSelectedTemplate(event.target.value);
+  };
+
   const handleSharePublicly = async () => {
     try {
       const publicId = `${user.uid}-${Date.now()}`;
       const publicResumeRef = doc(db, 'public_resumes', publicId);
       
-      // Structure the data in the format expected by PublicResume
+      // Structure the data in the format expected by templates
       const publicData = {
         userId: user.uid,
+        templateId: selectedTemplate,
         personalInfo: {
-          name: user.displayName,
+          name: resumeData.fullname ||user.displayName,
           email: user.email,
           phone: resumeData.phone || '',
           location: resumeData.address || '',
@@ -105,217 +108,275 @@ export default function Preview() {
     setSnackbarOpen(false);
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+  };
+
+  const handleDownloadHtml2PDF = () => {
+    handleCloseMenu();
     const element = resumeRef.current;
     const opt = {
-      margin: 1,
-      filename: 'resume.pdf',
+      margin: [10, 10],
+      filename: `${user.displayName.replace(/\s+/g, '_')}_Resume.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2 },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
+
     html2pdf().set(opt).from(element).save();
+  };
+
+  const handleDownloadJsPDF = () => {
+    handleCloseMenu();
+    try {
+      const doc = new jsPDF({
+        format: 'a4',
+        unit: 'pt',
+        orientation: 'portrait'
+      });
+
+      // Get the resume content
+      const element = resumeRef.current;
+      
+      // Set font sizes and styles
+      doc.setFontSize(24);
+      doc.setFont('helvetica', 'bold');
+      doc.text(user.displayName, 40, 40);
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      
+      let yPos = 70;
+      const lineHeight = 20;
+      const margin = 40;
+      const width = doc.internal.pageSize.width - (margin * 2);
+
+      // Contact Info
+      doc.text(user.email, margin, yPos);
+      if (resumeData.phone) {
+        doc.text(resumeData.phone, margin, yPos + lineHeight);
+        yPos += lineHeight;
+      }
+      if (resumeData.address) {
+        doc.text(resumeData.address, margin, yPos + lineHeight);
+        yPos += lineHeight;
+      }
+      yPos += lineHeight * 1.5;
+
+      // Professional Summary
+      if (resumeData.professionalSummary) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('Professional Summary', margin, yPos);
+        doc.setFont('helvetica', 'normal');
+        yPos += lineHeight;
+        
+        const summaryLines = doc.splitTextToSize(resumeData.professionalSummary, width);
+        doc.text(summaryLines, margin, yPos);
+        yPos += (lineHeight * summaryLines.length) + lineHeight;
+      }
+
+      // Experience
+      if (resumeData.experience && resumeData.experience.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('Experience', margin, yPos);
+        doc.setFont('helvetica', 'normal');
+        yPos += lineHeight;
+
+        resumeData.experience
+          .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
+          .forEach(exp => {
+            doc.setFont('helvetica', 'bold');
+            doc.text(`${exp.position} at ${exp.company}`, margin, yPos);
+            yPos += lineHeight;
+
+            doc.setFont('helvetica', 'normal');
+            doc.text(`${exp.startDate} - ${exp.endDate || 'Present'}`, margin, yPos);
+            yPos += lineHeight;
+
+            const descLines = doc.splitTextToSize(exp.description, width);
+            doc.text(descLines, margin, yPos);
+            yPos += (lineHeight * descLines.length) + lineHeight;
+
+            // Check if we need a new page
+            if (yPos > doc.internal.pageSize.height - margin) {
+              doc.addPage();
+              yPos = margin;
+            }
+          });
+      }
+
+      // Skills
+      if (resumeData.skills && resumeData.skills.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('Skills', margin, yPos);
+        doc.setFont('helvetica', 'normal');
+        yPos += lineHeight;
+
+        const skillText = resumeData.skills
+          .map(skill => `${skill.name} (${skill.rating}/5)`)
+          .join(' • ');
+        const skillLines = doc.splitTextToSize(skillText, width);
+        doc.text(skillLines, margin, yPos);
+        yPos += (lineHeight * skillLines.length) + lineHeight;
+      }
+
+      // Save the PDF
+      doc.save(`${user.displayName.replace(/\s+/g, '_')}_Resume_Simple.pdf`);
+      
+      setSnackbarMessage('PDF downloaded successfully!');
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      setSnackbarMessage('Error generating PDF. Please try again.');
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleDownloadWord = () => {
+    handleCloseMenu();
+    try {
+      const content = resumeRef.current.innerHTML;
+      const converted = htmlDocx.asBlob(content);
+      const url = window.URL.createObjectURL(converted);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${user.displayName.replace(/\s+/g, '_')}_Resume.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      setSnackbarMessage('Word document downloaded successfully!');
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error generating Word document:', error);
+      setSnackbarMessage('Error generating Word document. Please try again.');
+      setSnackbarOpen(true);
+    }
   };
 
   if (loading || !resumeData) {
     return <Typography>Loading...</Typography>;
   }
 
+  const Template = getTemplateById(selectedTemplate).component;
+
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ mb: 2, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<ShareIcon />}
-          onClick={handleSharePublicly}
-        >
-          Share Publicly
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<PdfIcon />}
-          onClick={handleDownloadPDF}
-        >
-          Download PDF
-        </Button>
-      </Box>
-      <Paper ref={resumeRef} sx={{ p: 4, fontFamily: 'Calibri, sans-serif' }}>
-        {/* Header */}
-        <Box sx={{ textAlign: 'center', mb: 3 }}>
-          <Typography variant="h4" sx={headingStyle}>
-            {user.displayName}
-          </Typography>
-          <Typography sx={textStyle}>
-            {resumeData.phone} • {resumeData.address}
-          </Typography>
-          <Typography sx={textStyle}>
-            {user.email} • {resumeData.githubUrl} • {resumeData.websiteUrl}
-          </Typography>
-        </Box>
-
-        {/* Professional Summary */}
-        {resumeData.professionalSummary && (
-          <Box sx={sectionStyle}>
-            <Typography variant="h5" sx={headingStyle}>
-              Professional Summary
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            <Typography sx={textStyle}>{resumeData.professionalSummary}</Typography>
-          </Box>
-        )}
-
-        {/* Experience */}
-        {resumeData.experience && resumeData.experience.length > 0 && (
-          <Box sx={sectionStyle}>
-            <Typography variant="h5" sx={headingStyle}>
-              Professional Experience
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            {resumeData.experience
-              .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
-              .map((exp, index) => (
-                <Box key={index} sx={{ mb: 2 }}>
-                  <Typography variant="h6" sx={subHeadingStyle}>
-                    {exp.position} - {exp.company}
-                  </Typography>
-                  <Typography sx={dateStyle}>
-                    {exp.startDate} - {exp.endDate || 'Present'} | {exp.location} ({exp.locationType})
-                  </Typography>
-                  <Typography sx={textStyle}>{exp.description}</Typography>
-                  <Box sx={{ mt: 1, mb: 1 }}>
-                    {exp.skills.map((skill, i) => (
-                      <Chip
-                        key={i}
-                        label={skill}
-                        size="small"
-                        sx={{ mr: 0.5, mb: 0.5, fontFamily: 'Calibri, sans-serif' }}
-                      />
-                    ))}
-                  </Box>
-                </Box>
-              ))}
-          </Box>
-        )}
-
-        {/* Education */}
-        {resumeData.education && resumeData.education.length > 0 && (
-          <Box sx={sectionStyle}>
-            <Typography variant="h5" sx={headingStyle}>
-              Education
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            {resumeData.education
-              .sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate))
-              .map((edu, index) => (
-                <Box key={index} sx={{ mb: 2 }}>
-                  <Typography variant="h6" sx={subHeadingStyle}>
-                    {edu.degree} in {edu.fieldOfStudy}
-                  </Typography>
-                  <Typography sx={subHeadingStyle}>
-                    {edu.instituteName} - {edu.location}
-                  </Typography>
-                  <Typography sx={dateStyle}>
-                    {edu.fromDate} - {edu.toDate || 'Present'} | Grade: {edu.grade}
-                  </Typography>
-                  {edu.description && (
-                    <Typography sx={textStyle}>{edu.description}</Typography>
-                  )}
-                  {edu.activities && (
-                    <Typography sx={textStyle}>Activities: {edu.activities}</Typography>
-                  )}
-                </Box>
-              ))}
-          </Box>
-        )}
-
-        {/* Skills */}
-        {resumeData.skills && resumeData.skills.length > 0 && (
-          <Box sx={sectionStyle}>
-            <Typography variant="h5" sx={headingStyle}>
-              Technical Skills
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {resumeData.skills
-                .sort((a, b) => b.rating - a.rating)
-                .map((skill, index) => (
+    <>
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+          <Box sx={{ flex: 1 }}>
+            <FormControl sx={{ minWidth: 200, mb: 2 }}>
+              <InputLabel id="template-select-label">Template</InputLabel>
+              <Select
+                labelId="template-select-label"
+                value={selectedTemplate}
+                label="Template"
+                onChange={handleTemplateChange}
+              >
+                {templates.map(template => (
+                  <MenuItem key={template.id} value={template.id}>
+                    {template.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            
+            {/* Template Info */}
+            <Paper sx={{ p: 2, bgcolor: 'background.paper', mt: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                {getTemplateById(selectedTemplate).name}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                {getTemplateById(selectedTemplate).description}
+              </Typography>
+              
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Features:
+              </Typography>
+              <Box sx={{ mb: 2 }}>
+                {getTemplateById(selectedTemplate).features.map((feature, index) => (
                   <Chip
                     key={index}
-                    label={`${skill.name} (${skill.yearsOfExperience} years)`}
-                    sx={{ fontFamily: 'Calibri, sans-serif' }}
+                    label={feature}
+                    size="small"
+                    sx={{ mr: 0.5, mb: 0.5, bgcolor: 'primary.light', color: 'white' }}
                   />
                 ))}
-            </Box>
-          </Box>
-        )}
-
-        {/* Certifications */}
-        {resumeData.certifications && resumeData.certifications.length > 0 && (
-          <Box sx={sectionStyle}>
-            <Typography variant="h5" sx={headingStyle}>
-              Certifications
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            {resumeData.certifications.map((cert, index) => (
-              <Box key={index} sx={{ mb: 1 }}>
-                <Typography sx={subHeadingStyle}>
-                  {cert.name} - {cert.organization}
-                </Typography>
-                <Typography sx={dateStyle}>
-                  Issued: {cert.issueDate} | Expires: {cert.expiryDate || 'No Expiration'}
-                </Typography>
-                <Typography sx={textStyle}>Credential ID: {cert.credentialId}</Typography>
               </Box>
-            ))}
-          </Box>
-        )}
 
-        {/* Languages */}
-        {resumeData.languages && resumeData.languages.length > 0 && (
-          <Box sx={sectionStyle}>
-            <Typography variant="h5" sx={headingStyle}>
-              Languages
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {resumeData.languages.map((lang, index) => (
-                <Chip
-                  key={index}
-                  label={`${lang.name} - ${lang.proficiency}`}
-                  sx={{ fontFamily: 'Calibri, sans-serif' }}
-                />
-              ))}
-            </Box>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Recommended for:
+              </Typography>
+              <Box>
+                {getTemplateById(selectedTemplate).recommendedFor.map((rec, index) => (
+                  <Chip
+                    key={index}
+                    label={rec}
+                    size="small"
+                    variant="outlined"
+                    sx={{ mr: 0.5, mb: 0.5 }}
+                  />
+                ))}
+              </Box>
+            </Paper>
           </Box>
-        )}
 
-        {/* Achievements */}
-        {resumeData.achievements && resumeData.achievements.length > 0 && (
-          <Box sx={sectionStyle}>
-            <Typography variant="h5" sx={headingStyle}>
-              Achievements
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            {resumeData.achievements
-              .sort((a, b) => new Date(b.date) - new Date(a.date))
-              .map((achievement, index) => (
-                <Box key={index} sx={{ mb: 1 }}>
-                  <Typography sx={subHeadingStyle}>{achievement.title}</Typography>
-                  <Typography sx={dateStyle}>{achievement.date}</Typography>
-                  <Typography sx={textStyle}>{achievement.description}</Typography>
-                </Box>
-              ))}
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Tooltip title="Share your resume with a public link">
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<ShareIcon />}
+                onClick={handleSharePublicly}
+              >
+                Share Publicly
+              </Button>
+            </Tooltip>
+            <Tooltip title="Download options">
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<DownloadIcon />}
+                onClick={handleDownloadClick}
+              >
+                Download
+              </Button>
+            </Tooltip>
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleCloseMenu}
+            >
+              <MenuItemMui onClick={handleDownloadHtml2PDF}>
+                <PdfIcon sx={{ mr: 1 }} />
+                Download Styled PDF
+              </MenuItemMui>
+              <MenuItemMui onClick={handleDownloadJsPDF}>
+                <ArticleIcon sx={{ mr: 1 }} />
+                Download Simple PDF
+              </MenuItemMui>
+              <MenuItemMui onClick={handleDownloadWord}>
+                <WordIcon sx={{ mr: 1 }} />
+                Download Word Document
+              </MenuItemMui>
+            </Menu>
           </Box>
-        )}
-      </Paper>
+        </Box>
+      </Box>
+
+      <Template ref={resumeRef} resumeData={resumeData} user={user} />
+
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
         message={snackbarMessage}
       />
-    </Box>
+    </>
   );
 }

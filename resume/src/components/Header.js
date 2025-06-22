@@ -34,7 +34,7 @@ export default function Header({ activeSection, onSectionChange }) {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <img 
-                  src={user.photoURL} 
+                  src={user?.photoURL || '/placeholder-avatar.png'} 
                   alt="Profile" 
                   style={{ 
                     width: 32, 
@@ -42,9 +42,12 @@ export default function Header({ activeSection, onSectionChange }) {
                     borderRadius: '50%',
                     marginRight: 8 
                   }} 
+                  onError={(e) => {
+                    e.target.src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+                  }}
                 />
                 <Typography variant="body2" sx={{ mr: 2 }}>
-                  {user.displayName}
+                  {user?.displayName || 'User'}
                 </Typography>
               </Box>
               <Button color="inherit" onClick={signOut}>Sign Out</Button>

@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { CssBaseline, Container, ThemeProvider, createTheme } from '@mui/material';
+import { CssBaseline, Container, ThemeProvider, createTheme, Box, CircularProgress } from '@mui/material';
+import { useAuth } from './contexts/AuthContext';
 import { AuthProvider } from './contexts/AuthContext';
 import Header from './components/Header';
+import Footer from './components/Footer';
 import PersonalInfo from './components/PersonalInfo';
 import Education from './components/Education';
 import Experience from './components/Experience';
@@ -26,7 +28,8 @@ const theme = createTheme({
   },
 });
 
-function App() {
+// Main resume content component that requires auth context
+function ResumeContent() {
   const [activeSection, setActiveSection] = useState('personal');
   const [resumeData, setResumeData] = useState({
     personalInfo: {},
@@ -38,10 +41,25 @@ function App() {
     achievements: [],
   });
 
+  const { loading } = useAuth();
+
   // Check if we're viewing a public resume
   const path = window.location.pathname;
   const isPublicResume = path.startsWith('/resume/');
   const publicId = isPublicResume ? path.split('/resume/')[1] : null;
+
+  if (loading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh' 
+      }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   if (isPublicResume) {
     return (
@@ -57,11 +75,7 @@ function App() {
   const renderSection = () => {
     switch (activeSection) {
       case 'personal':
-        return <PersonalInfo
-          data={resumeData.personalInfo}
-          onUpdate={(data) =>
-            setResumeData({ ...resumeData, personalInfo: data })
-          } />;
+        return <PersonalInfo />;
       case 'education':
         return <Education
           data={resumeData.education}
@@ -101,23 +115,39 @@ function App() {
       case 'preview':
         return <Preview {...resumeData} />;
       default:
-        return <PersonalInfo
-          data={resumeData.personalInfo}
-          onUpdate={(data) =>
-            setResumeData({ ...resumeData, personalInfo: data })
-          } />;
+        return <PersonalInfo />;
     }
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <AuthProvider>
+    <>
+      <CssBaseline />
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          pb: 8
+        }}
+      >
         <Header activeSection={activeSection} onSectionChange={setActiveSection} />
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Container component="main" sx={{ mt: 4, mb: 4, flex: 1 }}>
           {renderSection()}
         </Container>
-      </AuthProvider>
-    </ThemeProvider>
+        <Footer />
+      </Box>
+    </>
+  );
+}
+
+// Root component that provides context
+function App() {
+  return (
+    <AuthProvider>
+      <ThemeProvider theme={theme}>
+        <ResumeContent />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

@@ -72,7 +72,7 @@ export default function Preview() {
         templateId: selectedTemplate,
         personalInfo: {
           name: resumeData.fullname ||user.displayName,
-          email: user.email,
+          email: user.email || '',
           phone: resumeData.phone || '',
           location: resumeData.address || '',
           professionalSummary: resumeData.professionalSummary || '',
@@ -116,18 +116,58 @@ export default function Preview() {
     setAnchorEl(null);
   };
 
-  const handleDownloadHtml2PDF = () => {
+  const handleDownloadHtml2PDF = async () => {
     handleCloseMenu();
-    const element = resumeRef.current;
-    const opt = {
-      margin: [10, 10],
-      filename: `${user.displayName.replace(/\s+/g, '_')}_Resume.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
+    
+    try {
+      // Set loading message
+      setSnackbarMessage('Preparing PDF...');
+      setSnackbarOpen(true);
 
-    html2pdf().set(opt).from(element).save();
+      // Wait for all images to load
+      const element = resumeRef.current;
+      const images = Array.from(element.getElementsByTagName('img'));
+      
+      // Create an array of promises that resolve when each image loads
+      const imagePromises = images.map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          // Enable CORS for image loading
+          img.crossOrigin = 'anonymous';
+        });
+      });
+
+      // Wait for all images to load
+      await Promise.all(imagePromises);
+
+      const opt = {
+        margin: [10, 10],
+        filename: `${resumeData.fullname || user.displayName.replace(/\s+/g, '_')}_Resume.pdf`,
+        image: { 
+          type: 'jpeg', 
+          quality: 0.98,
+          crossOrigin: 'anonymous'
+        },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          logging: true,
+          allowTaint: true
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      await html2pdf().set(opt).from(resumeRef.current).save();
+      
+      setSnackbarMessage('PDF downloaded successfully!');
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      setSnackbarMessage('Error generating PDF. Please try again.');
+      setSnackbarOpen(true);
+    }
   };
 
   const handleDownloadJsPDF = () => {

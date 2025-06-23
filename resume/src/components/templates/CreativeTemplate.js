@@ -133,14 +133,14 @@ const CreativeTemplate = React.forwardRef(({ resumeData, user }, ref) => {
             </Grid>
             <Grid item xs={12} md={9}>
               <Typography variant="h1" sx={styles.name}>
-                {resumeData.fullname || user.displayName}
+                {resumeData.fullName || user.displayName}
               </Typography>
               <Typography variant="h6" sx={styles.subtitle}>
                 {resumeData.professionalSummary}
               </Typography>
               <Box sx={{ mt: 2 }}>
                 <Typography sx={{ opacity: 0.9 }}>
-                  {user.email} • {resumeData.phone}
+                  {user.email || ''} • {resumeData.phone}
                 </Typography>
                 <Typography sx={{ opacity: 0.9 }}>
                   {resumeData.address}

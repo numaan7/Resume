@@ -138,7 +138,7 @@ const MinimalTemplate = React.forwardRef(({ resumeData, user }, ref) => {
       <Box sx={styles.container}>
         {/* Header */}
         <Box sx={styles.header}>
-          <Typography sx={styles.name}>{user.displayName}</Typography>
+          <Typography sx={styles.name}>{resumeData.fullName || user.displayName }</Typography>
           <Box sx={styles.contactInfo}>
             <Typography>{user.email}</Typography>
             {resumeData.phone && (
@@ -212,37 +212,7 @@ const MinimalTemplate = React.forwardRef(({ resumeData, user }, ref) => {
           </Box>
         )}
 
-        {/* Education */}
-        {resumeData.education && resumeData.education.length > 0 && (
-          <Box sx={styles.section}>
-            <Typography sx={styles.sectionTitle}>Education</Typography>
-            {resumeData.education
-              .sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate))
-              .map((edu, index) => (
-                <Box key={index} sx={styles.experienceBox}>
-                  <Grid container justifyContent="space-between" alignItems="flex-start">
-                    <Grid item xs={12} sm={8}>
-                      <Typography sx={styles.itemTitle}>
-                        {edu.degree} in {edu.fieldOfStudy}
-                      </Typography>
-                      <Typography>{edu.instituteName}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Grade: {edu.grade}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={4} sx={{ textAlign: { sm: 'right' } }}>
-                      <Typography sx={styles.date}>
-                        {edu.fromDate} - {edu.toDate || 'Present'}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                  {edu.description && (
-                    <Typography sx={{ ...styles.text, mt: 1 }}>{edu.description}</Typography>
-                  )}
-                </Box>
-              ))}
-          </Box>
-        )}
+     
 
         {/* Skills */}
         {resumeData.skills && resumeData.skills.length > 0 && (
@@ -344,6 +314,37 @@ const MinimalTemplate = React.forwardRef(({ resumeData, user }, ref) => {
                   <Typography sx={{ ...styles.text, mt: 1 }}>
                     {achievement.description}
                   </Typography>
+                </Box>
+              ))}
+          </Box>
+        )}
+           {/* Education */}
+        {resumeData.education && resumeData.education.length > 0 && (
+          <Box sx={styles.section}>
+            <Typography sx={styles.sectionTitle}>Education</Typography>
+            {resumeData.education
+              .sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate))
+              .map((edu, index) => (
+                <Box key={index} sx={styles.experienceBox}>
+                  <Grid container justifyContent="space-between" alignItems="flex-start">
+                    <Grid item xs={12} sm={8}>
+                      <Typography sx={styles.itemTitle}>
+                        {edu.degree} in {edu.fieldOfStudy}
+                      </Typography>
+                      <Typography>{edu.instituteName}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Grade: {edu.grade}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={4} sx={{ textAlign: { sm: 'right' } }}>
+                      <Typography sx={styles.date}>
+                        {edu.fromDate} - {edu.toDate || 'Present'}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                  {edu.description && (
+                    <Typography sx={{ ...styles.text, mt: 1 }}>{edu.description}</Typography>
+                  )}
                 </Box>
               ))}
           </Box>

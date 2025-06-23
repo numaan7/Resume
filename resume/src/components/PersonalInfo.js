@@ -64,11 +64,10 @@ export default function PersonalInfo() {
   };
 
   const handleNameSave = async () => {
-    const dataToSave = {
-      ...formData,
-      fullName: formData.fullName || user?.displayName || '' // Ensure we have a name to save
-    };
-    await savePersonalInfo(dataToSave);
+    if (!formData.fullName?.trim()) {
+      return; // Don't save if the name is empty
+    }
+    await savePersonalInfo(formData);
     setEditingName(false);
   };
 
@@ -79,12 +78,9 @@ export default function PersonalInfo() {
       [name]: value
     }));
     
-    // If editing name, immediately update the fullName
-    if (name === 'fullName' && editingName) {
-      setFormData(prev => ({
-        ...prev,
-        fullName: value || user?.displayName || ''
-      }));
+    // No special handling needed for fullName anymore
+    if (name === 'fullName' && !value.trim()) {
+      return; // Don't update if the name is empty
     }
   };
 
@@ -109,13 +105,34 @@ export default function PersonalInfo() {
             />
           </Grid>
         <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Full Name"
-              value={user?.displayName || ''}
-              disabled
-              helperText="Full Name is synchronized with your Google account"
-            />
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+              <TextField
+                fullWidth
+                label="Full Name"
+                name="fullName"
+                value={editingName ? formData.fullName : (formData.fullName || user?.displayName || '')}
+                onChange={handleInputChange}
+                disabled={!editingName}
+                helperText={editingName ? 
+                  "Enter your full name" : 
+                  formData.fullName ? "Click edit to change your name" : "Click edit to set your name"}
+              />
+              <Tooltip title={editingName ? "Save name" : "Edit name"}>
+                <IconButton 
+                  onClick={() => {
+                    if (editingName) {
+                      handleNameSave();
+                    } else {
+                      setEditingName(true);
+                    }
+                  }}
+                  color={editingName ? "primary" : "default"}
+                  sx={{ mt: 1 }}
+                >
+                  {editingName ? <SaveIcon /> : <EditIcon />}
+                </IconButton>
+              </Tooltip>
+            </Box>
           </Grid>
 
           <Grid item xs={12} md={6}>

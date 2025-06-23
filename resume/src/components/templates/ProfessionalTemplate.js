@@ -83,7 +83,7 @@ const ProfessionalTemplate = React.forwardRef(({ resumeData, user }, ref) => {
       {/* Header */}
       <Box sx={styles.header}>
         <Typography variant="h3" sx={styles.headerName}>
-          {user.displayName}
+          {resumeData.fullName || user.displayName }
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} md={8}>

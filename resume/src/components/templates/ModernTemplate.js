@@ -191,19 +191,19 @@ const ModernTemplate = React.forwardRef(({ resumeData, user }, ref) => {
   return (
     <Paper ref={ref} sx={{ maxWidth: '1000px', margin: '0 auto', overflow: 'hidden' }}>
       <Box sx={styles.container}>
-        {/* Sidebar */}
-        <Box sx={styles.sidebar}>
-          <Box sx={styles.profile}>
-            <Box
-              component="img"
-              src={user.photoURL}
-              alt={resumeData.fullname}
-              sx={styles.profileImage}
-            />
-            <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1, color: 'white' }}>
-              {user.displayName}
-            </Typography>
-            {/* Social Links */}
+       
+          <Box sx={styles.sidebar}>
+            <Box sx={styles.profile}>
+              <Box
+                component="img"
+                src={user.photoURL}
+                alt={resumeData.fullName || user.displayName}
+                sx={styles.profileImage}
+              />
+              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1, color: 'white' }}>
+                  {resumeData.fullName || user.displayName }
+              </Typography>
+              {/* Social Links */}
             <Box sx={styles.socialLinks}>
               {resumeData.githubUrl && (
                 <Link href={resumeData.githubUrl} target="_blank" sx={{ color: 'inherit' }}>
@@ -348,32 +348,7 @@ const ModernTemplate = React.forwardRef(({ resumeData, user }, ref) => {
             </Box>
           )}
 
-          {/* Education with Details */}
-          {resumeData.education && resumeData.education.length > 0 && (
-            <Box sx={styles.section}>
-              <Typography variant="h6" sx={styles.heading}>
-                Education
-              </Typography>
-              {resumeData.education
-                .sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate))
-                .map((edu, index) => (
-                  <Box key={index} sx={styles.experienceBox}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#2c3e50' }}>
-                      {edu.degree} in {edu.fieldOfStudy}
-                    </Typography>
-                    <Typography variant="subtitle2" sx={{ color: '#3498db' }}>
-                      {edu.instituteName}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#7f8c8d' }}>
-                      {edu.fromDate} - {edu.toDate || 'Present'} | Grade: {edu.grade}
-                    </Typography>
-                    {edu.description && (
-                      <Typography sx={styles.text}>{edu.description}</Typography>
-                    )}
-                  </Box>
-                ))}
-            </Box>
-          )}
+       
 
           {/* Enhanced Certifications */}
           {resumeData.certifications && resumeData.certifications.length > 0 && (
@@ -432,6 +407,33 @@ const ModernTemplate = React.forwardRef(({ resumeData, user }, ref) => {
                     <Typography sx={styles.text}>
                       {achievement.description}
                     </Typography>
+                  </Box>
+                ))}
+            </Box>
+          )}
+
+             {/* Education with Details */}
+          {resumeData.education && resumeData.education.length > 0 && (
+            <Box sx={styles.section}>
+              <Typography variant="h6" sx={styles.heading}>
+                Education
+              </Typography>
+              {resumeData.education
+                .sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate))
+                .map((edu, index) => (
+                  <Box key={index} sx={styles.experienceBox}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#2c3e50' }}>
+                      {edu.degree} in {edu.fieldOfStudy}
+                    </Typography>
+                    <Typography variant="subtitle2" sx={{ color: '#3498db' }}>
+                      {edu.instituteName}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#7f8c8d' }}>
+                      {edu.fromDate} - {edu.toDate || 'Present'} | Grade: {edu.grade}
+                    </Typography>
+                    {edu.description && (
+                      <Typography sx={styles.text}>{edu.description}</Typography>
+                    )}
                   </Box>
                 ))}
             </Box>

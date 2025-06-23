@@ -29,18 +29,26 @@ const styles = {
 const DefaultTemplate = React.forwardRef(({ resumeData, user }, ref) => {
   if (!resumeData) return null;
 
+  // Create safe user object with fallbacks
+  const safeUser = {
+    displayName: user?.displayName || '',
+    email: user?.email || ''
+  };
+
   return (
     <Paper ref={ref} sx={{ p: 4, my: 2, maxWidth: '800px', margin: '0 auto' }}>
       {/* Header */}
       <Box sx={{ textAlign: 'center', mb: 3 }}>
         <Typography variant="h4" sx={styles.heading}>
-          {resumeData.fullname || user.displayName}
+          {resumeData.fullName || safeUser.displayName}
         </Typography>
         <Typography sx={styles.text}>
-          {resumeData.phone} • {resumeData.address}
+          {resumeData.phone && resumeData.address ? `${resumeData.phone} • ${resumeData.address}` : ''}
         </Typography>
         <Typography sx={styles.text}>
-          {user.email} • {resumeData.githubUrl} • {resumeData.websiteUrl}
+          {[safeUser.email, resumeData.githubUrl, resumeData.websiteUrl]
+            .filter(Boolean)
+            .join(' • ')}
         </Typography>
       </Box>
 
@@ -88,36 +96,7 @@ const DefaultTemplate = React.forwardRef(({ resumeData, user }, ref) => {
         </Box>
       )}
 
-      {/* Education */}
-      {resumeData.education && resumeData.education.length > 0 && (
-        <Box sx={styles.section}>
-          <Typography variant="h5" sx={styles.heading}>
-            Education
-          </Typography>
-          <Divider sx={{ mb: 2 }} />
-          {resumeData.education
-            .sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate))
-            .map((edu, index) => (
-              <Box key={index} sx={{ mb: 2 }}>
-                <Typography variant="h6" sx={styles.subHeading}>
-                  {edu.degree} in {edu.fieldOfStudy}
-                </Typography>
-                <Typography sx={styles.subHeading}>
-                  {edu.instituteName} - {edu.location}
-                </Typography>
-                <Typography sx={styles.date}>
-                  {edu.fromDate} - {edu.toDate || 'Present'} | Grade: {edu.grade}
-                </Typography>
-                {edu.description && (
-                  <Typography sx={styles.text}>{edu.description}</Typography>
-                )}
-                {edu.activities && (
-                  <Typography sx={styles.text}>Activities: {edu.activities}</Typography>
-                )}
-              </Box>
-            ))}
-        </Box>
-      )}
+    
 
       {/* Skills */}
       {resumeData.skills && resumeData.skills.length > 0 && (
@@ -194,6 +173,37 @@ const DefaultTemplate = React.forwardRef(({ resumeData, user }, ref) => {
                 <Typography sx={styles.subHeading}>{achievement.title}</Typography>
                 <Typography sx={styles.date}>{achievement.date}</Typography>
                 <Typography sx={styles.text}>{achievement.description}</Typography>
+              </Box>
+            ))}
+        </Box>
+      )}
+
+        {/* Education */}
+      {resumeData.education && resumeData.education.length > 0 && (
+        <Box sx={styles.section}>
+          <Typography variant="h5" sx={styles.heading}>
+            Education
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          {resumeData.education
+            .sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate))
+            .map((edu, index) => (
+              <Box key={index} sx={{ mb: 2 }}>
+                <Typography variant="h6" sx={styles.subHeading}>
+                  {edu.degree} in {edu.fieldOfStudy}
+                </Typography>
+                <Typography sx={styles.subHeading}>
+                  {edu.instituteName} - {edu.location}
+                </Typography>
+                <Typography sx={styles.date}>
+                  {edu.fromDate} - {edu.toDate || 'Present'} | Grade: {edu.grade}
+                </Typography>
+                {edu.description && (
+                  <Typography sx={styles.text}>{edu.description}</Typography>
+                )}
+                {edu.activities && (
+                  <Typography sx={styles.text}>Activities: {edu.activities}</Typography>
+                )}
               </Box>
             ))}
         </Box>

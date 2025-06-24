@@ -3,7 +3,7 @@ import { Paper, Typography, Box, Divider, Chip } from '@mui/material';
 
 const styles = {
   section: {
-    marginBottom: 3,
+   
   },
   heading: {
     fontFamily: 'Calibri, sans-serif',
@@ -36,7 +36,7 @@ const DefaultTemplate = React.forwardRef(({ resumeData, user }, ref) => {
   };
 
   return (
-    <Paper ref={ref} sx={{ p: 4, my: 2, maxWidth: '800px', margin: '0 auto' }}>
+    <Paper ref={ref} sx={{ p: 4, maxWidth: '800px', margin: '0 auto' }}>
       {/* Header */}
       <Box sx={{ textAlign: 'center', mb: 3 }}>
         <Typography variant="h4" sx={styles.heading}>

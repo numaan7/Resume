@@ -143,15 +143,15 @@ export default function Preview() {
       await Promise.all(imagePromises);
 
       const opt = {
-        margin: [10, 10],
+        
         filename: `${resumeData.fullname || user.displayName.replace(/\s+/g, '_')}_Resume.pdf`,
         image: { 
           type: 'jpeg', 
-          quality: 0.98,
+          quality: 1.0,
           crossOrigin: 'anonymous'
         },
         html2canvas: { 
-          scale: 2,
+          scale: 4,
           useCORS: true,
           logging: true,
           allowTaint: true

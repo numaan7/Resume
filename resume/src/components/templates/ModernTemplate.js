@@ -8,20 +8,37 @@ const styles = {
     display: 'flex',
     flexDirection: { xs: 'column', md: 'row' },
     minHeight: '100%',
+    position: 'relative',
   },
   sidebar: {
     background: '#2c3e50',
     color: '#ffffff',
     padding: 3,
-    flex: { xs: '1', md: '0 0 300px' },
+    position: { md: 'absolute' },
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: { md: '300px' },
     display: 'flex',
     flexDirection: 'column',
     gap: 3,
+    '@media print': {
+      position: 'absolute',
+      height: '100%',
+      minHeight: '297mm',
+      width: '300px'
+    }
   },
   main: {
     padding: 3,
     flex: '1',
     backgroundColor: '#ffffff',
+    marginLeft: { md: '300px' },
+    minHeight: '297mm',
+    '@media print': {
+      marginLeft: '300px',
+      minHeight: '297mm'
+    }
   },
   heading: {
     color: '#2c3e50',
@@ -189,7 +206,16 @@ const ModernTemplate = React.forwardRef(({ resumeData, user }, ref) => {
   if (!resumeData) return null;
 
   return (
-    <Paper ref={ref} sx={{ maxWidth: '1000px', margin: '0 auto', overflow: 'hidden' }}>
+    <Paper ref={ref} sx={{ 
+      maxWidth: '1000px', 
+      margin: '0 auto',
+      minHeight: '297mm',
+      position: 'relative',
+      '@media print': {
+        minHeight: '297mm',
+        boxShadow: 'none'
+      }
+    }}>
       <Box sx={styles.container}>
        
           <Box sx={styles.sidebar}>

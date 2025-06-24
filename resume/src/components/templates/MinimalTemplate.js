@@ -19,7 +19,7 @@ const styles = {
     textTransform: 'uppercase',
   },
   section: {
-    marginBottom: 4,
+    marginBottom: 6,
   },
   sectionTitle: {
     fontSize: '1.2rem',
